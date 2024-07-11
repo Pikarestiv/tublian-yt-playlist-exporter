@@ -7,7 +7,10 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
   const login = useGoogleLogin({
-    onSuccess: (response) => setAccessToken(response.access_token),
+    onSuccess: (response) => {
+      localStorage.setItem("token", response.access_token);
+      setAccessToken(response.access_token);
+    },
     onError: () => console.log("Login Failed"),
     scope:
       "https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube",
