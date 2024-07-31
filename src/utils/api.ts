@@ -37,6 +37,28 @@ export const getLambdaUrl = (path: string) => {
   return `${ft_lambda_url}${path}`;
 };
 
+// export const generatePlaylistVideos = async (
+//   roadmapId: string,
+//   username: string,
+//   loader: any
+// ) => {
+//   const url = getLambdaUrl(`/ft/learning/roadmap/get/${username}/${roadmapId}`);
+
+//   loader(true);
+
+//   var response = await fetch(url, {
+//     method: "GET",
+//     headers: getHeaders(),
+//   });
+
+//   const roadmapWrap: RoadmapWrap = await response.json();
+
+//   const videos = await getAllVideosFromRoadmap(roadmapWrap.roadmap);
+//   loader(false);
+//   return videos;
+//   // console.log("🚀 ~ fetchResources ~ videos:", videos);
+// };
+
 export const generatePlaylistVideos = async (
   roadmapId: string,
   username: string,
@@ -46,31 +68,82 @@ export const generatePlaylistVideos = async (
 
   loader(true);
 
-  var response = await fetch(url, {
-    method: "GET",
-    headers: getHeaders(),
-  });
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getHeaders(),
+    });
 
-  const roadmapWrap: RoadmapWrap = await response.json();
+    // Check if the response is okay
+    if (!response.ok) {
+      throw new Error(`Failed to fetch roadmap: ${response.statusText}`);
+    }
 
-  const videos = await getAllVideosFromRoadmap(roadmapWrap.roadmap);
-  loader(false);
-  return videos;
+    const roadmapWrap: RoadmapWrap = await response.json();
+
+    // Check if roadmapWrap and roadmap are valid
+    if (!roadmapWrap || !roadmapWrap.roadmap) {
+      throw new Error("Invalid roadmap data received");
+    }
+
+    const videos = await getAllVideosFromRoadmap(roadmapWrap.roadmap);
+    return videos;
+  } catch (error) {
+    console.error("Error generating playlist videos:", error);
+    return []; // Return an empty array or handle the error as needed
+  } finally {
+    loader(false);
+  }
   // console.log("🚀 ~ fetchResources ~ videos:", videos);
 };
+
+// const getAllVideosFromRoadmap = async (roadmap: Roadmaps) => {
+//   let resources: { link: string; resourceType: "link" | "video" }[] = [];
+
+//   const phases = roadmap.phases;
+
+//   for (let phaseNo = 0; phaseNo <= phases.length; phaseNo++) {
+//     const { phaseData } = await getVideosFromPhase(roadmap.id, phases[phaseNo]);
+//     console.log("🚀 ~ getAllVideosFromRoadmap ~ resources:", resources);
+
+//     if (phaseData) {
+//       resources = [...resources, ...phaseData];
+//     }
+//   }
+
+//   // console.log("🚀 ~ fetchResources ~ resources:", resources);
+
+//   return resources;
+// };
 
 const getAllVideosFromRoadmap = async (roadmap: Roadmaps) => {
   let resources: { link: string; resourceType: "link" | "video" }[] = [];
 
-  const phases = roadmap.phases;
+  try {
+    const phases = roadmap.phases;
 
-  for (let phaseNo = 0; phaseNo <= phases.length; phaseNo++) {
-    const { phaseData } = await getVideosFromPhase(roadmap.id, phases[phaseNo]);
-    console.log("🚀 ~ getAllVideosFromRoadmap ~ resources:", resources);
-
-    if (phaseData) {
-      resources = [...resources, ...phaseData];
+    // Ensure phases is an array
+    if (!Array.isArray(phases)) {
+      throw new Error("Phases is not an array");
     }
+
+    for (let phaseNo = 0; phaseNo < phases.length; phaseNo++) {
+      try {
+        const { phaseData } = await getVideosFromPhase(
+          roadmap.id,
+          phases[phaseNo]
+        );
+        console.log("🚀 ~ getAllVideosFromRoadmap ~ resources:", resources);
+
+        if (phaseData) {
+          resources = [...resources, ...phaseData];
+        }
+      } catch (error) {
+        console.error(`Error fetching videos for phase ${phaseNo}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error("Error in getAllVideosFromRoadmap:", error);
   }
 
   // console.log("🚀 ~ fetchResources ~ resources:", resources);
